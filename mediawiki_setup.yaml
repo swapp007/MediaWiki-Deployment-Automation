@@ -1,0 +1,41 @@
+- hosts: localhost  # You can replace "localhost" with your target host or group
+  become: yes
+  tasks:
+    - name: Update and upgrade packages
+      shell: "sudo su - -c 'apt update && apt upgrade -y'"
+
+    - name: Install required packages
+      shell: "sudo su - -c 'apt-get install -y apache2 mysql-server php php-mysql libapache2-mod-php php-xml php-mbstring software-properties-common'"
+
+    - name: Add Ansible repository
+      shell: "sudo su - -c 'add-apt-repository --yes --update ppa:ansible/ansible'"
+
+    - name: Install Ansible
+      shell: "sudo su - -c 'apt install -y ansible'"
+
+    - name: Create /opt directory
+      shell: "sudo su - -c 'mkdir -p /opt'"
+
+    - name: Download MediaWiki tarball
+      shell: "sudo su - -c 'cd /tmp/ && wget -O mediawiki-1.41.0.tar.gz https://releases.wikimedia.org/mediawiki/1.41/mediawiki-1.41.0.tar.gz'"
+
+    - name: Extract MediaWiki tarball
+      shell: "sudo su - -c 'tar -xvzf /tmp/mediawiki-1.41.0.tar.gz && mkdir -p /var/lib/mediawiki && mv mediawiki-1.41.0/* /var/lib/mediawiki'"
+
+    - name: Create MySQL user and database
+      expect:
+        command: sudo su - -c 'mysql -u root -p'
+        responses:
+          Enter password: ""
+          mysql>:
+            - "CREATE USER 'abhishek'@'localhost' IDENTIFIED BY 'believe14';"
+            - "CREATE DATABASE my_wiki;"
+            - "USE my_wiki;"
+            - "GRANT ALL ON my_wiki.* TO 'abhishek'@'localhost';"
+            - "commit;"
+            - "quit;"
+
+    - name: Configure MediaWiki
+      shell: "sudo su - -c 'ln -s /var/lib/mediawiki /var/www/html/mediawiki'"
+    - name: Install Php extension
+      shell: "sudo apt install -y php-intl && sudo systemctl restart apache2"
